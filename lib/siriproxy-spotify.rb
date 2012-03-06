@@ -97,7 +97,7 @@ class SiriProxy::Plugin::Spotify < SiriProxy::Plugin
     return (`osascript -e 'tell application "Spotify"\n#{command}\nend'`).strip
   end
 
-  def searchSpotify(query, type=track)
+  def searchSpotify(query, type="track")
     return JSON.parse(open("http://ws.spotify.com/search/1/#{type}.json?q=#{query}").read)
   end
 end
