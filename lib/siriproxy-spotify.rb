@@ -13,17 +13,43 @@ require 'uri'
 class SiriProxy::Plugin::Spotify < SiriProxy::Plugin
 
   SPOTIFY_CHECK = '(spotify|spotter five|spot of phi|spot fie|spot a fight|specify|spot if i|spotted by|stultify)'
+  PLAY_CHECK = '(play|plate|place)'
 
   def initialize(config)
     #if you have custom configuration options, process them here!
   end
   
-  listen_for /#{SPOTIFY_CHECK} play (.*) by (.*)/i do |keyword, song, artist|
+  # I do think order is important as patterns partly match the same
+  
+  listen_for /#{SPOTIFY_CHECK} play (the)? (last|previous) (track|song)/i do
+    # Sending this command once only goes to the beginning of the current track. So let's send it twice!
+    commandSpotify("previous track")
+    response = commandSpotify("previous track\n#{detailedNowPlayingCommand()}")
+    say "Ok, playing #{response}"
+    
+    request_completed
+  end
+  
+  listen_for /#{SPOTIFY_CHECK} play (the)? next (track|song)?/i do
+    response = commandSpotify("next track\n#{detailedNowPlayingCommand()}")
+    say "Ok, playing #{response}"
+    
+    request_completed
+  end
+  
+  listen_for /#{SPOTIFY_CHECK} what (band|singer|artist|track|group|song) is this/i do
+    response = commandSpotify("#{detailedNowPlayingCommand()}")
+    say "Playing #{response}"
+    
+    request_completed
+  end
+  
+  listen_for /#{SPOTIFY_CHECK} #{PLAY_CHECK} (.*) (?:by|with) (.*)/i do |keyword, song, artist|
     
     cleansong = URI.escape(song.strip)
     cleanartist = URI.escape(artist.strip)
 	  
-    results = JSON.parse(open("http://ws.spotify.com/search/1/track.json?q=artist:#{cleanartist}+track:#{cleansong}").read)
+    results = searchSpotify("artist:#{cleanartist}+track:#{cleansong}")
     
     if (results["tracks"].length > 1)
       track = results["tracks"][0]
@@ -37,11 +63,11 @@ class SiriProxy::Plugin::Spotify < SiriProxy::Plugin
     request_completed
   end
 
-  listen_for /#{SPOTIFY_CHECK} play(?: me some)? (.*)/i do |keyword, query|
+  listen_for /#{SPOTIFY_CHECK} #{PLAY_CHECK} artist (.*)/i do |keyword, query|
     
     artist = URI.escape(query.strip)
 	  
-    results = JSON.parse(open("http://ws.spotify.com/search/1/track.json?q=#{artist}").read)
+	  results = searchSpotify("#{artist}")
     
     if (results["tracks"].length > 1)
       track = results["tracks"][0]
@@ -63,34 +89,15 @@ class SiriProxy::Plugin::Spotify < SiriProxy::Plugin
     request_completed
   end
   
-  listen_for /#{SPOTIFY_CHECK} play the (last|previous) (track|song)/i do
-    # Sending this command once only goes to the beginning of the current track. So let's send it twice!
-    commandSpotify("previous track")
-    response = commandSpotify("previous track\n#{detailedNowPlayingCommand()}")
-    say "Ok, playing #{response}"
-    
-    request_completed
-  end
-  
-  listen_for /#{SPOTIFY_CHECK} play the next (track|song)/i do
-    response = commandSpotify("next track\n#{detailedNowPlayingCommand()}")
-    say "Ok, playing #{response}"
-    
-    request_completed
-  end
-  
-  listen_for /#{SPOTIFY_CHECK} what (band|singer|artist|track|group|song) is this/i do
-    response = commandSpotify("#{detailedNowPlayingCommand()}")
-    say "Playing #{response}"
-    
-    request_completed
-  end
-  
   def detailedNowPlayingCommand()
 		return "set nowPlaying to current track\nreturn \"\" & name of nowPlaying & \" by \" & artist of nowPlaying"
 	end
   
   def commandSpotify(command)
     return (`osascript -e 'tell application "Spotify"\n#{command}\nend'`).strip
+  end
+
+  def searchSpotify(query, type=track)
+    return JSON.parse(open("http://ws.spotify.com/search/1/#{type}.json?q=#{query}").read)
   end
 end
