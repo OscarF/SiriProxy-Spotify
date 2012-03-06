@@ -17,6 +17,25 @@ class SiriProxy::Plugin::Spotify < SiriProxy::Plugin
   def initialize(config)
     #if you have custom configuration options, process them here!
   end
+  
+  listen_for /#{SPOTIFY_CHECK} play (.*) by (.*)/i do |keyword, song, artist|
+    
+    cleansong = URI.escape(song.strip)
+    cleanartist = URI.escape(artist.strip)
+	  
+    results = JSON.parse(open("http://ws.spotify.com/search/1/track.json?q=artist:#{cleanartist}+track:#{cleansong}").read)
+    
+    if (results["tracks"].length > 1)
+      track = results["tracks"][0]
+
+      say "Playing #{track["name"]} by #{track["artists"][0]["name"]}"
+      `open #{track["href"]}`
+    else
+      say "I could not find #{song} by #{artist}"
+    end
+    
+    request_completed
+  end
 
   listen_for /#{SPOTIFY_CHECK} play(?: me some)? (.*)/i do |keyword, query|
     
