@@ -1,3 +1,7 @@
+Cloning to continue working on spotify features.
+
+---
+
 # SiriProxy-Spotify
 
 This is a Spotify plugin for [SiriProxy](https://github.com/plamoni/SiriProxy). Add it to your plugins directory in the usual way.

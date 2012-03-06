@@ -4,7 +4,7 @@ $:.push File.expand_path("../lib", __FILE__)
 Gem::Specification.new do |s|
   s.name        = "siriproxy-spotify"
   s.version     = "0.0.1" 
-  s.authors     = ["simonmaddox"]
+  s.authors     = ["simonmaddox", "OscarF"]
   s.email       = [""]
   s.homepage    = ""
   s.summary     = %q{A Spotify plugin for SiriProxy}
